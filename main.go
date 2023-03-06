@@ -10,19 +10,30 @@ type LoginResponse struct {
 	Message string `json:"message"`
 }
 
-func main() {
-
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+func handleRoot() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
-	})
+	}
+}
 
-	http.HandleFunc("/_health", func(w http.ResponseWriter, r *http.Request) {
+func handleHealth() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Health OK"))
-	})
+		w.Write([]byte("OK"))
+	}
+}
 
-	http.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
+func handleLogin() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.NotFound(w, r)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
@@ -31,9 +42,13 @@ func main() {
 		}
 
 		json.NewEncoder(w).Encode(response)
-	})
+	}
+}
 
-	http.HandleFunc("/notfound", NotFoundHandler)
+func main() {
+	http.HandleFunc("/", handleRoot())
+	http.HandleFunc("/_health", handleHealth())
+	http.HandleFunc("/login", handleLogin())
 
 	fmt.Println("server started on port 8000")
 
@@ -41,9 +56,4 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-}
-
-func NotFoundHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotFound)
-	w.Write([]byte("Not Found"))
 }
