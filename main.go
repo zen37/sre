@@ -134,12 +134,13 @@ func handleLogin(db *sql.DB) http.HandlerFunc {
 		}
 
 		// Send the token in the response body
-		resp := map[string]string{"token": token}
-		err = json.NewEncoder(w).Encode(resp)
+		resp, err := json.Marshal(token)
 		if err != nil {
 			http.Error(w, "Error encoding response", http.StatusInternalServerError)
 			return
 		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(resp)
 	}
 }
 
@@ -221,7 +222,7 @@ func maskToCidr(mask string) string {
 	return strconv.Itoa(bits)
 }
 
-func generateToken(role string) (string, error) {
+func generateToken(role string) (map[string]string, error) {
 	// secret should be retrieved from AWS Secrets Manager or Azure Key Vault or any other suitable service
 	secret := "my2w7wjd7yXF64FIADfJxNs1oupTGAuW"
 	// Create a new JWT token
@@ -236,9 +237,11 @@ func generateToken(role string) (string, error) {
 	secretKey := []byte(secret)
 	signedToken, err := token.SignedString(secretKey)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return signedToken, nil
+
+	// Return a map with the role and token fields
+	return map[string]string{"role": role, "token": signedToken}, nil
 }
 
 func sha512Hash(str string) string {

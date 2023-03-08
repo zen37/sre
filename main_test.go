@@ -117,18 +117,24 @@ func TestHandleLogin(t *testing.T) {
 }
 
 func TestGenerateToken(t *testing.T) {
+
 	// secret should be retrieved from AWS Secrets Manager or Azure Key Vault or any other suitable service
 	secret := "my2w7wjd7yXF64FIADfJxNs1oupTGAuW"
-	expectedRole := "admin"
-	//expectedExpirationTime := time.Now().Add(time.Hour * 24).Unix()
 
-	token, err := generateToken(expectedRole)
+	role := "admin"
+
+	tokenMap, err := generateToken(role)
 	if err != nil {
 		t.Fatalf("Error generating token: %v", err)
 	}
 
+	tokenString, ok := tokenMap["token"]
+	if !ok {
+		t.Fatalf("Token map doesn't contain token field")
+	}
+
 	// Parse the token to get the claims
-	parsedToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+	parsedToken, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		// Validate the signing method
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -146,7 +152,7 @@ func TestGenerateToken(t *testing.T) {
 		t.Fatalf("Token claims are not of type MapClaims")
 	}
 
-	if role, ok := claims["role"].(string); !ok || role != expectedRole {
+	if role, ok := claims["role"].(string); !ok || role != "admin" {
 		t.Errorf("Token has unexpected role: %v", role)
 	}
 
