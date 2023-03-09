@@ -206,3 +206,43 @@ func TestHandleCidrToMask(t *testing.T) {
 		t.Errorf("handler returned unexpected body:\nactual: %q\nexpected: %q", actual, expected)
 	}
 }
+
+func TestIsAuthenticated(t *testing.T) {
+	// Create a new request with a valid JWT token in the Authorization header
+	reqWithToken, err := http.NewRequest("GET", "/test", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	//token should be retrieved from AWS Secrets Manager or Azure Key Vault or any other suitable service
+	token := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYWRtaW4ifQ.StuYX978pQGnCeeaj2E1yBYwQvZIodyDTCJWXdsxBGI"
+	reqWithToken.Header.Set("Authorization", "Bearer "+token)
+
+	// Call the isAuthenticated function with the request with a valid token
+	if !isAuthenticated(reqWithToken) {
+		t.Errorf("isAuthenticated returned false for a valid token")
+	}
+
+	// Create a new request without a JWT token in the Authorization header
+	reqWithoutToken, err := http.NewRequest("GET", "/test", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Call the isAuthenticated function with the request without a token
+	if isAuthenticated(reqWithoutToken) {
+		t.Errorf("isAuthenticated returned true for a request without a token")
+	}
+
+	// Create a new request with an invalid JWT token in the Authorization header
+	reqWithInvalidToken, err := http.NewRequest("GET", "/test", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	invalidToken := "invalid_token"
+	reqWithInvalidToken.Header.Set("Authorization", "Bearer "+invalidToken)
+
+	// Call the isAuthenticated function with the request with an invalid token
+	if isAuthenticated(reqWithInvalidToken) {
+		t.Errorf("isAuthenticated returned true for a request with an invalid token")
+	}
+}

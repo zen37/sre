@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"strconv"
@@ -14,6 +15,8 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	_ "github.com/go-sql-driver/mysql"
 )
+
+const addr = ":8000"
 
 type LoginResponse struct {
 	Message string `json:"message"`
@@ -31,29 +34,29 @@ func main() {
 	// connection string should be retrieved from AWS Secrets Manager or Azure Key Vault or any other suitable service
 	db, err := sql.Open("mysql", "secret:jOdznoyH6swQB9sTGdLUeeSrtejWkcw@tcp(sre-bootcamp.czdpg2eovfhn.us-west-1.rds.amazonaws.com:3306)/bootcamp_tht")
 	if err != nil {
-		panic(err.Error())
+		log.Fatalf("failed to open database connection: %v", err)
 	}
 	defer db.Close()
 
-	if err != nil {
-		panic(err.Error())
+	// Check that the database connection is valid
+	if err := db.Ping(); err != nil {
+		log.Fatalf("failed to ping database: %v", err)
 	}
 
-	//TestConnection(db)
-	//return
-
+	// Define the HTTP handlers
 	http.HandleFunc("/", handleRoot())
 	http.HandleFunc("/_health", handleHealth())
 	http.HandleFunc("/login", handleLogin(db))
-
 	http.HandleFunc("/mask-to-cidr", handleMaskToCidr())
 	http.HandleFunc("/cidr-to-mask", handleCidrToMask())
 
-	fmt.Println("server started on port 8000")
-
-	err = http.ListenAndServe(":8000", nil)
-	if err != nil {
-		panic(err)
+	// Start the HTTP server
+	srv := &http.Server{
+		Addr: addr,
+	}
+	log.Printf("starting server on %s", addr)
+	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Fatalf("failed to start server: %v", err)
 	}
 }
 
@@ -75,24 +78,6 @@ func handleHealth() http.HandlerFunc {
 	}
 }
 
-/*
-	func handleLogin() http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
-			if r.Method != http.MethodGet {
-				http.NotFound(w, r)
-				return
-			}
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-
-			response := LoginResponse{
-				Message: "Welcome to the login page",
-			}
-
-			json.NewEncoder(w).Encode(response)
-		}
-	}
-*/
 func handleLogin(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Parse the JSON request body
@@ -145,6 +130,7 @@ func handleLogin(db *sql.DB) http.HandlerFunc {
 }
 
 func handleMaskToCidr() http.HandlerFunc {
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !isAuthenticated(r) {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -165,6 +151,7 @@ func handleMaskToCidr() http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(response)
 	}
+
 }
 
 func handleCidrToMask() http.HandlerFunc {
@@ -191,7 +178,28 @@ func handleCidrToMask() http.HandlerFunc {
 }
 
 func isAuthenticated(r *http.Request) bool {
-	// TODO: Implement authentication logic
+
+	// Extract the JWT token from the Authorization header
+	tokenString := extractToken(r)
+	if tokenString == "" {
+		return false
+	}
+
+	// Parse and verify the JWT token
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		// Check that the signing method is HMAC
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+		}
+		// secret should be retrieved from AWS Secrets Manager or Azure Key Vault or any other suitable service
+		secret := "my2w7wjd7yXF64FIADfJxNs1oupTGAuW"
+		// Return the secret key used to sign the token
+		return []byte(secret), nil
+	})
+	if err != nil || !token.Valid {
+		return false
+	}
+
 	return true
 }
 
@@ -281,4 +289,13 @@ func TestConnection(db *sql.DB) {
 	}
 
 	fmt.Println("Query successful!")
+}
+
+func extractToken(r *http.Request) string {
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		return ""
+	}
+	token := strings.Replace(authHeader, "Bearer ", "", 1)
+	return token
 }
