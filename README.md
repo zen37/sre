@@ -6,3 +6,9 @@ If you have any questions, feel free to contact your mentor or one of us: Juan B
 
 ## curl
 curl -X POST -H "Content-Type: application/json" -d '{"username": "admin", "password": "secret"}' http://localhost:8000/login
+
+export TOKEN=$(curl -X POST -H "Content-Type: application/json" -d '{"username": "admin", "password": "secret"}' http://localhost:8000/login | jq -r '.token')
+curl -H "Authorization: Bearer $TOKEN" -H "Accept: application/json" "http://localhost:8000/mask-to-cidr?value=255.255.0.0"
+
+export TOKEN=$(curl -X POST -H "Content-Type: application/json" -d '{"username": "admin", "password": "secret"}' http://localhost:8000/login | jq -r '.token')
+curl -H "Authorization: Bearer $TOKEN" -H "Accept: application/json" "http://localhost:8000/cidr-to-mask?value=24"

@@ -130,10 +130,10 @@ func handleLogin(db *sql.DB) http.HandlerFunc {
 }
 
 func handleMaskToCidr() http.HandlerFunc {
-
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !isAuthenticated(r) {
 			w.WriteHeader(http.StatusUnauthorized)
+			//http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return
 		}
 
@@ -158,6 +158,7 @@ func handleCidrToMask() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !isAuthenticated(r) {
 			w.WriteHeader(http.StatusUnauthorized)
+			//http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return
 		}
 
@@ -178,7 +179,6 @@ func handleCidrToMask() http.HandlerFunc {
 }
 
 func isAuthenticated(r *http.Request) bool {
-
 	// Extract the JWT token from the Authorization header
 	tokenString := extractToken(r)
 	if tokenString == "" {
