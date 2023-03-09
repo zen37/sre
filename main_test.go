@@ -164,6 +164,8 @@ func TestHandleMaskToCidr(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	req.Header.Set("Authorization", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYWRtaW4ifQ.StuYX978pQGnCeeaj2E1yBYwQvZIodyDTCJWXdsxBGI")
+
 	rr := httptest.NewRecorder()
 	handler := handleMaskToCidr()
 
@@ -188,6 +190,8 @@ func TestHandleCidrToMask(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	req.Header.Set("Authorization", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYWRtaW4ifQ.StuYX978pQGnCeeaj2E1yBYwQvZIodyDTCJWXdsxBGI")
 
 	rr := httptest.NewRecorder()
 	handler := handleCidrToMask()
