@@ -100,13 +100,13 @@ func handleLogin(db *sql.DB) http.HandlerFunc {
 		}
 
 		if queryErr == sql.ErrNoRows {
-			fmt.Println("User not found")
+			log.Println("User not found")
 			http.Error(w, "User not found", http.StatusUnauthorized)
 			return
 		} else if sha512Hash(req.Password+salt) == hashedPassword {
 			// the username and password combination is valid
 		} else {
-			fmt.Println("Invalid combination of username or password")
+			log.Println("Invalid combination of username or password")
 			http.Error(w, "Invalid combination of username or password", http.StatusUnauthorized)
 			return
 		}
@@ -189,7 +189,9 @@ func isAuthenticated(r *http.Request) bool {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		// Check that the signing method is HMAC
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+			err := fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+			log.Println(err)
+			return nil, err
 		}
 		// secret should be retrieved from AWS Secrets Manager or Azure Key Vault or any other suitable service
 		secret := "my2w7wjd7yXF64FIADfJxNs1oupTGAuW"
@@ -285,10 +287,10 @@ func TestConnection(db *sql.DB) {
 		if err != nil {
 			panic(err.Error())
 		}
-		fmt.Printf("username: %s role: %s salt: %s pass: %s\n", username, role, salt, pass)
+		log.Printf("username: %s role: %s salt: %s pass: %s\n", username, role, salt, pass)
 	}
 
-	fmt.Println("Query successful!")
+	log.Println("Query successful!")
 }
 
 func extractToken(r *http.Request) string {
